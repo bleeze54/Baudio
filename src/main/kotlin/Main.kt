@@ -1,11 +1,19 @@
 package org.example
+import Clientserveurmessage
+import jdk.internal.joptsimple.internal.Messages.message
 import java.io.PrintWriter
 import java.net.Socket
 import java.util.Scanner
+import kotlinx.coroutines.*
+import kotlinx.coroutines.isActive
+import java.io.BufferedReader
+import java.lang.Thread.sleep
 
-fun main() {
-    val socket = Socket("localhost", 9999)
+@Volatile
+var shutdown = false
 
+suspend fun writeur(socket: Socket) {
+    print("yo")
     val writer = PrintWriter(socket.getOutputStream(), true)
     var message :String? = "Hello World"
     writer.println(message)
@@ -17,7 +25,34 @@ fun main() {
         }else{
             writer.println(message)
         }
+    }}
+
+suspend fun reader(socket: Socket) {
+    print("yes")
+    try {
+        val reader: BufferedReader = socket.getInputStream().bufferedReader()
+        while (true) {
+            if (shutdown) break
+            var message = reader.readLine() ?: continue
+            println(message)
+        }
+    }finally {
+        shutdown = true
     }
 
-    socket.close()
+
+}
+fun main(){
+    val socket = Socket("localhost", 9999)
+    val Scope = CoroutineScope(Dispatchers.IO)
+    Scope.launch {
+        writeur(socket)
+    }
+    Scope.launch {
+        reader(socket)
+    }
+
+while (true) {
+    sleep(1000)
+}
 }
