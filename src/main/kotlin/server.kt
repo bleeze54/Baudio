@@ -1,22 +1,32 @@
 package org.example
 
+import Clientserveurmessage
+import kotlinx.coroutines.*
 import java.net.ServerSocket
-import java.net.Socket
-import kotlin.concurrent.thread
 
-fun main() {
-
+fun main() = runBlocking {
     val server = ServerSocket(9999)
-    println("Serveur demaré")
-    val clients = mutableListOf<Socket>()
-    thread {
+    println("Serveur démarré")
 
-    }
-    while (true) {
+    val serverScope = CoroutineScope(Dispatchers.IO)
 
-        val client = server.accept()
-        clients.add(client)
+    try {
+        while (isActive) {
+            val client = server.accept()
+            println("Nouvelle connexion de ${client.inetAddress.hostAddress}")
 
-        ClientServeurMessage(client).start()
+            // Lance le handler
+            serverScope.launch {
+                Clientserveurmessage(client).handle()
+            }
+
+        }
+    } catch (e: CancellationException) {
+        // arrêt demandé
+    } finally {
+        server.close()
+        serverScope.cancel()
+        serverScope.coroutineContext.job.join()
+        println("Serveur arrêté")
     }
 }
