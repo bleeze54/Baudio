@@ -1,58 +1,90 @@
 package org.example
-import Clientserveurmessage
-import jdk.internal.joptsimple.internal.Messages.message
+import Protocole
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.*
+import kotlinx.serialization.json.*
+
+import java.io.BufferedReader
 import java.io.PrintWriter
 import java.net.Socket
-import java.util.Scanner
-import kotlinx.coroutines.*
-import kotlinx.coroutines.isActive
-import java.io.BufferedReader
-import java.lang.Thread.sleep
+import java.time.LocalTime
+import java.util.*
 
 @Volatile
 var shutdown = false
 
+
+@Serializable
+data class Protocole(
+    val action: String,
+    val message: String,
+    val heure: String? = null
+)
+
 suspend fun writeur(socket: Socket) {
-    print("yo")
     val writer = PrintWriter(socket.getOutputStream(), true)
-    var message :String? = "Hello World"
-    writer.println(message)
-    val s: Scanner = Scanner(System.`in`)
-    while (true) {
-        message = s.nextLine()
-        if(message=="exit"){
-            break
-        }else{
+    val s = Scanner(System.`in`)
+    while (!shutdown) {
+        if (s.hasNextLine()) {
+            var message = s.nextLine()
+            if (message == "exit") {
+                shutdown = true
+                break
+            }
+            if( message in "pingPING"){
+                writer.write(Json.encodeToString(Protocole(action = "PING", message = "PING", heure = LocalTime.now())))
+            }
             writer.println(message)
         }
-    }}
+    }
+}
 
 suspend fun reader(socket: Socket) {
-    print("yes")
-    try {
-        val reader: BufferedReader = socket.getInputStream().bufferedReader()
-        while (true) {
-            if (shutdown) break
-            var message = reader.readLine() ?: continue
-            println(message)
+        try {
+            val reader: BufferedReader = socket.getInputStream().bufferedReader()
+            while (!shutdown) {
+                val message = reader.readLine()
+                if (message == null) {
+                    println("Serveur déconnecté.")
+                    shutdown = true
+                    break
+                }
+                val objet = Json.decodeFromString<Protocole>(message)
+                println("\n[REÇU] : ,${objet.message}")
+                print("> ") // retrour ellegant a la ligne
+            }
+        } catch (e: Exception) {
+            if (!shutdown) println("Erreur lecture : ${e.message}")
+        } finally {
+            shutdown = true
         }
-    }finally {
-        shutdown = true
     }
 
 
-}
-fun main(){
-    val socket = Socket("localhost", 9999)
-    val Scope = CoroutineScope(Dispatchers.IO)
-    Scope.launch {
+fun main() = runBlocking {
+    val socket = try {
+        Socket("localhost", 9999)
+    } catch (e: Exception) {
+        println("Impossible de se connecter au serveur.")
+        return@runBlocking
+    }
+
+    // On lance les deux coroutines en parallèle
+    val jobWriter = launch(Dispatchers.IO) {
         writeur(socket)
     }
-    Scope.launch {
+
+    val jobReader = launch(Dispatchers.IO) {
         reader(socket)
     }
 
-while (true) {
-    sleep(1000)
-}
+    // Au lieu du while(true) sleep, on attend que l'un des deux finisse
+    // Si le writer s'arrête (exit) ou le reader (déconnexion), on ferme tout
+    joinAll(jobWriter, jobReader)
+
+    socket.close()
+    println("Fin du programme.")
 }
