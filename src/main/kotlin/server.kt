@@ -1,17 +1,22 @@
 package org.example
 
 import java.net.ServerSocket
+import java.net.Socket
+import kotlin.concurrent.thread
 
 fun main() {
+
     val server = ServerSocket(9999)
-    println("Serveur en attente...")
+    println("Serveur demaré")
+    val clients = mutableListOf<Socket>()
+    thread {
 
-    val client = server.accept()
-    println("Client connecté")
+    }
+    while (true) {
 
-    val reader = client.getInputStream().bufferedReader()
-    println(reader.readLine())
+        val client = server.accept()
+        clients.add(client)
 
-    client.close()
-    server.close()
+        ClientServeurMessage(client).start()
+    }
 }
