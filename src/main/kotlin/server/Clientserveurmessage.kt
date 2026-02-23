@@ -42,6 +42,14 @@ class Clientservermessage(private val client: Socket) {
                         writer.flush()
 
                     }
+                    "EXIT"-> {
+                        println("fin de connection de${client.inetAddress.hostAddress}")
+                        writer.write(Json.encodeToString(Protocole(action = "EXIT", message = "OK"))+ "\n")
+                        writer.flush()
+                        client.close()
+                        break
+
+                    }
                     "PING" -> {
                         try {
                             val latence = System.currentTimeMillis() - objet.timestamp

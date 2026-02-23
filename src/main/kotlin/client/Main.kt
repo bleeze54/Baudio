@@ -31,10 +31,6 @@ suspend fun writeur(socket: Socket) = coroutineScope {
 
         if (s.hasNextLine()) {
             val messagebrut = s.nextLine().trim() // On récupère et on nettoie les espaces
-            if (messagebrut.lowercase() == "exit") {
-                shutdown = true
-                break
-            }
             //val message = messagebrut.split("|")
             val message = messagebrut.split("|", limit = 2)
             val protocole:Protocole = when (message[0].uppercase()) {
@@ -43,6 +39,10 @@ suspend fun writeur(socket: Socket) = coroutineScope {
                     }
                     "PING" -> {
                         Protocole(action = "PING", message = "PING")
+                    }
+                    "EXIT" -> {
+                        shutdown=true
+                        Protocole(action = "EXIT", message = "EXIT")
                     }
                     else -> {
                         Protocole(action = "TEXT", message = message[0])
@@ -65,6 +65,11 @@ suspend fun reader(socket: Socket)= coroutineScope {
                     break
                 }
                 val objet = Json.decodeFromString<Protocole>(message)
+                if (objet.action == "EXIT") {
+                    println("Serveur déconnecté.")
+                    shutdown = true
+                    break
+                }
                 println("[REÇU] :${objet.message}")
                 print(">") // retrour ellegant a la ligne
             }

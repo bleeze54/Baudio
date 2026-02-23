@@ -1,9 +1,12 @@
 package server
 
-import kotlinx.coroutines.*
-import java.net.ServerSocket
-
+fun main(){
+    val server=Server()
+    server.start()
+}
+/*
 fun main() = runBlocking {
+
     val server = ServerSocket(9999)
     println("serveur démarré")
 
@@ -28,4 +31,4 @@ fun main() = runBlocking {
         serverScope.coroutineContext.job.join()
         println("server arrêté")
     }
-}
+    }*/
