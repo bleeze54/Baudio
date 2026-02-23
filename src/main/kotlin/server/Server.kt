@@ -5,7 +5,7 @@ import java.net.ServerSocket
 import java.net.Socket
 
 class Server(val port: Int=9999, val public: Boolean=true, val password: String?=null) {
-    private val clients: MutableSet<Socket>
+    private var clients: MutableSet<Socket>
     init {
         this.clients= mutableSetOf()
     }
@@ -23,7 +23,7 @@ class Server(val port: Int=9999, val public: Boolean=true, val password: String?
 
                 // Lance le handler
                 serverScope.launch {
-                    Clientservermessage(client,password).handle()
+                    Clientservermessage(client,password, this@Server).handle()
                 }
 
             }

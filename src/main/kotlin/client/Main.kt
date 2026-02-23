@@ -34,6 +34,9 @@ suspend fun writeur(socket: Socket) = coroutineScope {
             //val message = messagebrut.split("|")
             val message = messagebrut.split("|", limit = 2)
             val protocole:Protocole = when (message[0].uppercase()) {
+                    "USERS"-> {
+                        Protocole(action = "USERS", message = "")
+                    }
                     "TEXT"-> {
                         Protocole(action = "TEXT", message = message[1])
                     }
@@ -45,7 +48,7 @@ suspend fun writeur(socket: Socket) = coroutineScope {
                         Protocole(action = "EXIT", message = "EXIT")
                     }
                     else -> {
-                        Protocole(action = "TEXT", message = message[0])
+                        Protocole(action = "TEXT", message = messagebrut)
                     }
                 }
                 val jsonExport = Json.encodeToString(protocole)
@@ -70,6 +73,7 @@ suspend fun reader(socket: Socket)= coroutineScope {
                     shutdown = true
                     break
                 }
+
                 println("[REÇU] :${objet.message}")
                 print(">") // retrour ellegant a la ligne
             }

@@ -16,10 +16,11 @@ data class Protocole(
     val message: String,
     val timestamp: Long = System.currentTimeMillis()
 )
-class Clientservermessage(private val client: Socket,private val password: String?=null) {
+class Clientservermessage(private val client: Socket, private val password: String? = null,val server: Server) {
 
     suspend fun handle() = coroutineScope {
         try {
+
             val reader: BufferedReader = client.getInputStream().bufferedReader()
             val out = client.getOutputStream()
             val writer = out.writer().buffered()
@@ -54,6 +55,12 @@ class Clientservermessage(private val client: Socket,private val password: Strin
                 }
                 val objet = Json.decodeFromString<Protocole>(message)
                 when (objet.action) {
+                    "USERS"-> {
+                        server.getclients()
+                        println("Text Recu : ${server.getclients()}")
+                        writer.write(Json.encodeToString(Protocole(action = "USERS", server.getclients().toString()))+ "\n")
+                        writer.flush()
+                    }
                     "TEXT"-> {
                         println("Text Recu : ${objet.message}")
                         writer.write(Json.encodeToString(Protocole(action = "INFO", message = "OK"))+ "\n")
