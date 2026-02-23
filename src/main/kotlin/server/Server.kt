@@ -4,11 +4,19 @@ import kotlinx.coroutines.*
 import java.net.ServerSocket
 import java.net.Socket
 
-class Server(val port: Int=9999, val public: Boolean=true, val password: String?=null) {
+class Server(val port: Int=9999, val public: Boolean=true,clearpassword: String?=null) {
     private var clients: MutableSet<Socket>
+    val encryptpassword :String?
     init {
         this.clients= mutableSetOf()
+        this.encryptpassword=  if (clearpassword != null) {
+            md5Hash(clearpassword)
+        }else{
+            null
+        }
     }
+
+
     fun start() {
         val server = ServerSocket(this.port)
         println("serveur démarré")
@@ -23,7 +31,7 @@ class Server(val port: Int=9999, val public: Boolean=true, val password: String?
 
                 // Lance le handler
                 serverScope.launch {
-                    Clientservermessage(client,password, this@Server).handle()
+                    Clientservermessage(client,encryptpassword, this@Server).handle()
                 }
 
             }

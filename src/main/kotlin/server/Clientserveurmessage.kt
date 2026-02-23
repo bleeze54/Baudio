@@ -35,7 +35,7 @@ class Clientservermessage(private val client: Socket, private val password: Stri
                     throw e  // propage l'annulation
                 }
                 val objet = Json.decodeFromString<Protocole>(message)
-                if (objet.message != password){
+                if (md5Hash(objet.message) != password){
                     writer.write(Json.encodeToString(Protocole(action = "ERROR", message = "acces refusé"))+ "\n")
                     writer.flush()
                     writer.close()
@@ -79,9 +79,10 @@ class Clientservermessage(private val client: Socket, private val password: Stri
                         try {
                             val latence = System.currentTimeMillis() - objet.timestamp
                             println(latence)
-                            writer.write(Json.encodeToString(Protocole(action = "PING", message = "PONG! ${latence}"))+ "\n")
+                            writer.write(Json.encodeToString(Protocole(action = "PING", message = "PONG! $latence"))+ "\n")
                             writer.flush()
                         } catch (e: Exception) {
+                            println(e)
                             writer.write(Json.encodeToString(Protocole(action = "ERREUR", message = "Format d'heure invalide"))+ "\n")
                             writer.flush()
                         }
@@ -97,6 +98,7 @@ class Clientservermessage(private val client: Socket, private val password: Stri
             }
 
         } catch (e: CancellationException) {
+            println(e)
             // Annulation normale
         } catch (e: Exception) {
             println("Erreur avec le client ${client.inetAddress.hostAddress}: ${e.message}")
