@@ -1,16 +1,13 @@
 package org.example
-import Protocole
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.*
-import kotlinx.serialization.json.*
 
+import Protocole
+import kotlinx.coroutines.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.BufferedReader
 import java.io.PrintWriter
 import java.net.Socket
-import java.time.LocalTime
 import java.util.*
 
 @Volatile
@@ -21,28 +18,40 @@ var shutdown = false
 data class Protocole(
     val action: String,
     val message: String,
-    val heure: String? = null
+    val timestamp: Long = System.currentTimeMillis()
 )
 
-suspend fun writeur(socket: Socket) {
+suspend fun writeur(socket: Socket) = coroutineScope {
     val writer = PrintWriter(socket.getOutputStream(), true)
     val s = Scanner(System.`in`)
+
+    println("Client prêt. Tape 'ping' ou un message :")
+
     while (!shutdown) {
+
         if (s.hasNextLine()) {
-            var message = s.nextLine()
-            if (message == "exit") {
+            val message = s.nextLine().trim() // On récupère et on nettoie les espaces
+
+            if (message.lowercase() == "exit") {
                 shutdown = true
                 break
             }
-            if( message in "pingPING"){
-                writer.write(Json.encodeToString(Protocole(action = "PING", message = "PING", heure = LocalTime.now())))
+
+            val protocole = if (message.lowercase() == "ping") {
+                Protocole(action = "PING", message = "PING")
+            } else {
+                Protocole(action = "TEXT", message = message)
             }
-            writer.println(message)
+
+
+            val jsonExport = Json.encodeToString(protocole)
+            writer.println(jsonExport)
+
         }
     }
 }
 
-suspend fun reader(socket: Socket) {
+suspend fun reader(socket: Socket)= coroutineScope {
         try {
             val reader: BufferedReader = socket.getInputStream().bufferedReader()
             while (!shutdown) {
@@ -53,7 +62,7 @@ suspend fun reader(socket: Socket) {
                     break
                 }
                 val objet = Json.decodeFromString<Protocole>(message)
-                println("\n[REÇU] : ,${objet.message}")
+                println("[REÇU] :${objet.message}")
                 print("> ") // retrour ellegant a la ligne
             }
         } catch (e: Exception) {
@@ -72,17 +81,14 @@ fun main() = runBlocking {
         return@runBlocking
     }
 
+    val jobReader = launch(Dispatchers.IO) {
+        reader(socket)
+    }
     // On lance les deux coroutines en parallèle
     val jobWriter = launch(Dispatchers.IO) {
         writeur(socket)
     }
 
-    val jobReader = launch(Dispatchers.IO) {
-        reader(socket)
-    }
-
-    // Au lieu du while(true) sleep, on attend que l'un des deux finisse
-    // Si le writer s'arrête (exit) ou le reader (déconnexion), on ferme tout
     joinAll(jobWriter, jobReader)
 
     socket.close()

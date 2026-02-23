@@ -8,18 +8,15 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.BufferedReader
 import java.net.Socket
-import java.time.Duration
-import java.time.LocalTime
 import kotlin.coroutines.cancellation.CancellationException
 
 @Serializable
 data class Protocole(
     val action: String,
     val message: String,
-    val heure: LocalTime? = null
+    val timestamp: Long = System.currentTimeMillis()
 )
 class Clientserveurmessage(private val client: Socket) {
-
 
     suspend fun handle() = coroutineScope {
         try {
@@ -27,9 +24,8 @@ class Clientserveurmessage(private val client: Socket) {
             val reader: BufferedReader = client.getInputStream().bufferedReader()
             val out = client.getOutputStream()
             val writer = out.writer().buffered()
-            writer.write("BIENVENUE SUR LE SERVEUR\n")
-            writer.flush() // FORCE l'envoi sur le réseau
-
+            writer.write(Json.encodeToString(Protocole(action = "Info", message = "Bonjour"))+ "\n")
+            writer.flush()
             println("DEBUG : Envoi du message de test...")
             while (isActive) {
                 val message = try {
@@ -48,17 +44,14 @@ class Clientserveurmessage(private val client: Socket) {
                     }
                     "PING" -> {
                         try {
-                            val latence = Duration.between(objet.heure, LocalTime.now()).toMillis()
+                            val latence = System.currentTimeMillis() - objet.timestamp
                             println(latence)
-                            writer.write(Json.encodeToString(Protocole(action = "PING", message = "PONG", heure = LocalTime.now())))
+                            writer.write(Json.encodeToString(Protocole(action = "PING", message = "PONG! ${latence}"))+ "\n")
                             writer.flush()
                         } catch (e: Exception) {
-                            writer.write(Json.encodeToString(Protocole(action = "ERREUR", message = "Format d'heure invalide", heure = LocalTime.now())))
+                            writer.write(Json.encodeToString(Protocole(action = "ERREUR", message = "Format d'heure invalide"))+ "\n")
                             writer.flush()
                         }
-                    }
-                    ""-> {
-                        break
                     }
 
                     else -> {
@@ -67,7 +60,7 @@ class Clientserveurmessage(private val client: Socket) {
                         println("Reçu : ${objet.message}")
                     }
                 }
-                if (message == null) break  // client déconnecté
+
             }
 
         } catch (e: CancellationException) {
