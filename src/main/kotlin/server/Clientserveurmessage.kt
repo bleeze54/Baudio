@@ -16,13 +16,31 @@ data class Protocole(
     val message: String,
     val timestamp: Long = System.currentTimeMillis()
 )
-class Clientservermessage(private val client: Socket) {
+class Clientservermessage(private val client: Socket,private val password: String?=null) {
 
     suspend fun handle() = coroutineScope {
         try {
             val reader: BufferedReader = client.getInputStream().bufferedReader()
             val out = client.getOutputStream()
             val writer = out.writer().buffered()
+            if (password != null) {
+                writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "password"))+ "\n")
+                writer.flush()
+                val message = try {
+                    withContext(Dispatchers.IO) {
+                        reader.readLine()
+                    }
+                } catch (e: CancellationException) {
+                    throw e  // propage l'annulation
+                }
+                val objet = Json.decodeFromString<Protocole>(message)
+                if (objet.message != password){
+                    writer.write(Json.encodeToString(Protocole(action = "ERROR", message = "acces refusé"))+ "\n")
+                    writer.flush()
+                    writer.close()
+                    client.close()
+                }
+            }
             writer.write(Json.encodeToString(Protocole(action = "Info", message = "Bonjour"))+ "\n")
             writer.flush()
             println("DEBUG : Envoi du message de test...")

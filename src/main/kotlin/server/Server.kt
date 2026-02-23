@@ -23,7 +23,7 @@ class Server(val port: Int=9999, val public: Boolean=true, val password: String?
 
                 // Lance le handler
                 serverScope.launch {
-                    Clientservermessage(client).handle()
+                    Clientservermessage(client,password).handle()
                 }
 
             }
