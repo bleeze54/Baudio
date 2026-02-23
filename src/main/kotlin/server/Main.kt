@@ -1,12 +1,12 @@
 package org.example
 
-import Clientserveurmessage
 import kotlinx.coroutines.*
+import server.Clientservermessage
 import java.net.ServerSocket
 
 fun main() = runBlocking {
     val server = ServerSocket(9999)
-    println("Serveur démarré")
+    println("serveur démarré")
 
     val serverScope = CoroutineScope(Dispatchers.IO)
 
@@ -17,7 +17,7 @@ fun main() = runBlocking {
 
             // Lance le handler
             serverScope.launch {
-                Clientserveurmessage(client).handle()
+                Clientservermessage(client).handle()
             }
 
         }
@@ -27,6 +27,6 @@ fun main() = runBlocking {
         server.close()
         serverScope.cancel()
         serverScope.coroutineContext.job.join()
-        println("Serveur arrêté")
+        println("server arrêté")
     }
 }

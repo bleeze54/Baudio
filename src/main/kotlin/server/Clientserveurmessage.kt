@@ -1,4 +1,4 @@
-
+package server
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
@@ -16,11 +16,10 @@ data class Protocole(
     val message: String,
     val timestamp: Long = System.currentTimeMillis()
 )
-class Clientserveurmessage(private val client: Socket) {
+class Clientservermessage(private val client: Socket) {
 
     suspend fun handle() = coroutineScope {
         try {
-
             val reader: BufferedReader = client.getInputStream().bufferedReader()
             val out = client.getOutputStream()
             val writer = out.writer().buffered()
@@ -32,14 +31,15 @@ class Clientserveurmessage(private val client: Socket) {
                     withContext(Dispatchers.IO) {
                         reader.readLine()
                     }
-
                 } catch (e: CancellationException) {
                     throw e  // propage l'annulation
                 }
                 val objet = Json.decodeFromString<Protocole>(message)
                 when (objet.action) {
                     "TEXT"-> {
-                        println("Reçu : ${objet.message}")
+                        println("Text Recu : ${objet.message}")
+                        writer.write(Json.encodeToString(Protocole(action = "INFO", message = "OK"))+ "\n")
+                        writer.flush()
 
                     }
                     "PING" -> {
@@ -55,7 +55,7 @@ class Clientserveurmessage(private val client: Socket) {
                     }
 
                     else -> {
-                        writer.write("ERREUR : Commande inconnue")
+                        writer.write(Json.encodeToString(Protocole(action = "INFO", message = "commande Inconue"))+ "\n")
                         writer.flush()
                         println("Reçu : ${objet.message}")
                     }

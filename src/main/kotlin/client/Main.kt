@@ -1,6 +1,6 @@
 package org.example
 
-import Protocole
+import server.Protocole
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -63,7 +63,7 @@ suspend fun reader(socket: Socket)= coroutineScope {
                 }
                 val objet = Json.decodeFromString<Protocole>(message)
                 println("[REÇU] :${objet.message}")
-                print("> ") // retrour ellegant a la ligne
+                print(">") // retrour ellegant a la ligne
             }
         } catch (e: Exception) {
             if (!shutdown) println("Erreur lecture : ${e.message}")
