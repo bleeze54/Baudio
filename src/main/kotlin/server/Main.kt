@@ -1,7 +1,6 @@
-package org.example
+package server
 
 import kotlinx.coroutines.*
-import server.Clientservermessage
 import java.net.ServerSocket
 
 fun main() = runBlocking {

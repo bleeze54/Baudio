@@ -1,10 +1,10 @@
-package org.example
+package client
 
-import server.Protocole
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import server.Protocole
 import java.io.BufferedReader
 import java.io.PrintWriter
 import java.net.Socket
@@ -18,9 +18,9 @@ var shutdown = false
 data class Protocole(
     val action: String,
     val message: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val salutation:String ="salut"
 )
-
 suspend fun writeur(socket: Socket) = coroutineScope {
     val writer = PrintWriter(socket.getOutputStream(), true)
     val s = Scanner(System.`in`)
@@ -30,23 +30,26 @@ suspend fun writeur(socket: Socket) = coroutineScope {
     while (!shutdown) {
 
         if (s.hasNextLine()) {
-            val message = s.nextLine().trim() // On récupère et on nettoie les espaces
-
-            if (message.lowercase() == "exit") {
+            val messagebrut = s.nextLine().trim() // On récupère et on nettoie les espaces
+            if (messagebrut.lowercase() == "exit") {
                 shutdown = true
                 break
             }
-
-            val protocole = if (message.lowercase() == "ping") {
-                Protocole(action = "PING", message = "PING")
-            } else {
-                Protocole(action = "TEXT", message = message)
-            }
-
-
-            val jsonExport = Json.encodeToString(protocole)
-            writer.println(jsonExport)
-
+            //val message = messagebrut.split("|")
+            val message = messagebrut.split("|", limit = 2)
+            val protocole:Protocole = when (message[0].uppercase()) {
+                    "TEXT"-> {
+                        Protocole(action = "TEXT", message = message[1])
+                    }
+                    "PING" -> {
+                        Protocole(action = "PING", message = "PING")
+                    }
+                    else -> {
+                        Protocole(action = "TEXT", message = message[0])
+                    }
+                }
+                val jsonExport = Json.encodeToString(protocole)
+                writer.println(jsonExport)
         }
     }
 }
