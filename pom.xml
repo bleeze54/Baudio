@@ -97,6 +97,22 @@
             <artifactId>kotlinx-serialization-json-jvm</artifactId>
             <version>1.6.3</version>
         </dependency>
+        <dependency>
+            <groupId>dev.whyoleg.cryptography</groupId>
+            <artifactId>cryptography-core-jvm</artifactId>
+            <version>0.5.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.whyoleg.cryptography</groupId>
+            <artifactId>cryptography-provider-optimal-jvm</artifactId>
+            <version>0.5.0</version>
+        </dependency>
+        <dependency>
+            <groupId>cash.z.ecc.android</groupId>
+            <artifactId>kotlin-bip39-jvm</artifactId>
+            <version>1.0.9</version>
+        </dependency>
     </dependencies>
 
 
