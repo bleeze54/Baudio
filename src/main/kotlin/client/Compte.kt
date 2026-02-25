@@ -9,13 +9,11 @@ import java.security.SecureRandom
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.util.*
-import javax.crypto.Cipher
-import kotlin.text.Charsets.UTF_8
 
+//contien la logique crypographique de l'utilisateur
 class Compte(seedphrase:String? = null) {
-    val publicKey: RSAPublicKey
-    val privateKey: RSAPrivateKey
-    val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")  // ou OAEP pour mieux
+    private val publicKey: RSAPublicKey
+    private val privateKey: RSAPrivateKey
     init {
         val mnemonic = if (seedphrase != null) {
             //importation de la phrase
@@ -36,21 +34,12 @@ class Compte(seedphrase:String? = null) {
         this.privateKey = keyPair.private as RSAPrivateKey
     }
 
-    fun encrypt(text: String,): String {
-        val plaintext = "salut".toByteArray(UTF_8)
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        return cipher.doFinal(plaintext).toString()
-    }
-
-    fun decrypt(text: String): String {
-        cipher.init(Cipher.DECRYPT_MODE, privateKey)
-        val decrypted = cipher.doFinal(text.toByteArray(UTF_8))
-        return String(decrypted, UTF_8)
-    }
-
     fun getkey(): String {
         val publicKeyString = Base64.getEncoder().encodeToString(publicKey.encoded)
         return publicKeyString
+    }
+    fun decrypt(text: String): String {
+        return tools.decrypt(text,privateKey)
     }
 
     fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }

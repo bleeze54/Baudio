@@ -6,6 +6,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import tools.encrypt
+import tools.randomString
 import tools.stringToPublicKey
 import java.io.BufferedReader
 import java.io.BufferedWriter
@@ -27,7 +29,10 @@ class Clientservermessage(private val client: Socket, private val password: Stri
             val reader: BufferedReader = client.getInputStream().bufferedReader()
             val out = client.getOutputStream()
             val writer = out.writer().buffered()
-            username(writer,reader)
+            if (!username(writer,reader)){
+                writer.close()
+                client.close()
+            }
             if (password != null) {
                password(password, writer,reader)
             }
@@ -117,25 +122,23 @@ class Clientservermessage(private val client: Socket, private val password: Stri
         }
         return
     }
-    fun username(writer: BufferedWriter,reader: BufferedReader){
+    fun username(writer: BufferedWriter,reader: BufferedReader): Boolean{
         writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "KEY"))+ "\n")
         writer.flush()
-        val message = try {
-            reader.readLine()
-        } catch (e: CancellationException) {
-            throw e
-        }
-        val objet = Json.decodeFromString<Protocole>(message)
+        var message = reader.readLine()
+        var objet = Json.decodeFromString<Protocole>(message)
         val publickey = stringToPublicKey(objet.message)
-        println(publickey)
         if (publickey is PublicKey ) {
             server.setclient(client,objet.message)
-            writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "OK"))+ "\n")
+            val KeyTest = randomString()
+            writer.write(Json.encodeToString(Protocole(action = "keyTest", message = encrypt(KeyTest,publickey)))+ "\n")
             writer.flush()
-
-        }else {
-            writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "PAS OK")) + "\n")
-            writer.flush()
-        }
+            message = reader.readLine()
+            objet = Json.decodeFromString<Protocole>(message)
+            if (KeyTest == objet.message ) {
+                writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "T bon"))+ "\n")
+                return true
+            }else{return false}
+        }else {return false}
     }
 }

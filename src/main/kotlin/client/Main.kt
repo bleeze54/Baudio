@@ -70,9 +70,18 @@ suspend fun reader(socket: Socket,compte: Compte)= coroutineScope {
                 val objet = Json.decodeFromString<Protocole>(message)
                 if (objet.action == "REQUIREMENT" && objet.message == "KEY") {
                     val writer = PrintWriter(socket.getOutputStream(), true)
-                    val protocole =Protocole(action = "USERS", message = compte.getkey())
-                    val jsonExport = Json.encodeToString(protocole)
-                    writer.println(jsonExport)
+                    writer.println(Json.encodeToString(Protocole(action = "USERS", message = compte.getkey())))
+                    val message = reader.readLine()
+                    if (message == null) {
+                        println("Serveur déconnecté.")
+                        shutdown = true
+                        break
+                    }
+                    val objet = Json.decodeFromString<Protocole>(message)
+                    if(objet.action != "keyTest") {
+                        return@coroutineScope false
+                    }
+                    writer.println(Json.encodeToString(Protocole(action = "keyTest", message = compte.decrypt(objet.message))))
                     continue
                 }
                 if (objet.action == "EXIT") {
@@ -103,7 +112,6 @@ fun main() = runBlocking {
     val jobReader = launch(Dispatchers.IO) {
         reader(socket,compte)
     }
-    // On lance les deux coroutines en parallèle
     val jobWriter = launch(Dispatchers.IO) {
         writeur(socket,compte)
     }
