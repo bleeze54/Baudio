@@ -21,7 +21,7 @@ data class Protocole(
     val timestamp: Long = System.currentTimeMillis(),
     val salutation:String ="salut"
 )
-suspend fun writeur(socket: Socket) = coroutineScope {
+suspend fun writeur(socket: Socket,compte: Compte) = coroutineScope {
     val writer = PrintWriter(socket.getOutputStream(), true)
     val s = Scanner(System.`in`)
 
@@ -57,7 +57,7 @@ suspend fun writeur(socket: Socket) = coroutineScope {
     }
 }
 
-suspend fun reader(socket: Socket)= coroutineScope {
+suspend fun reader(socket: Socket,compte: Compte)= coroutineScope {
         try {
             val reader: BufferedReader = socket.getInputStream().bufferedReader()
             while (!shutdown) {
@@ -68,6 +68,13 @@ suspend fun reader(socket: Socket)= coroutineScope {
                     break
                 }
                 val objet = Json.decodeFromString<Protocole>(message)
+                if (objet.action == "REQUIREMENT" && objet.message == "KEY") {
+                    val writer = PrintWriter(socket.getOutputStream(), true)
+                    val protocole =Protocole(action = "USERS", message = compte.getkey())
+                    val jsonExport = Json.encodeToString(protocole)
+                    writer.println(jsonExport)
+                    continue
+                }
                 if (objet.action == "EXIT") {
                     println("Serveur déconnecté.")
                     shutdown = true
@@ -86,23 +93,22 @@ suspend fun reader(socket: Socket)= coroutineScope {
 
 
 fun main() = runBlocking {
+    val compte : Compte = Compte()
     val socket = try {
         Socket("localhost", 9999)
     } catch (e: Exception) {
         println("Impossible de se connecter au serveur.")
         return@runBlocking
     }
-
     val jobReader = launch(Dispatchers.IO) {
-        reader(socket)
+        reader(socket,compte)
     }
     // On lance les deux coroutines en parallèle
     val jobWriter = launch(Dispatchers.IO) {
-        writeur(socket)
+        writeur(socket,compte)
     }
 
     joinAll(jobWriter, jobReader)
-
     socket.close()
     println("Fin du programme.")
 }

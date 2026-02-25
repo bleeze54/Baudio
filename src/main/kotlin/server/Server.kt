@@ -3,12 +3,11 @@ package server
 import kotlinx.coroutines.*
 import java.net.ServerSocket
 import java.net.Socket
-
 class Server(val port: Int=9999, val public: Boolean=true,clearpassword: String?=null) {
-    private var clients: MutableSet<Socket>
+    private val clientsconnect: MutableMap<Socket,String>
     val encryptpassword :String?
     init {
-        this.clients= mutableSetOf()
+        this.clientsconnect= mutableMapOf()
         this.encryptpassword=  if (clearpassword != null) {
             md5Hash(clearpassword)
         }else{
@@ -26,7 +25,7 @@ class Server(val port: Int=9999, val public: Boolean=true,clearpassword: String?
         try {
             while (true) {
                 val client = server.accept()
-                this.clients.add(client)
+                clientsconnect[client]="anonyme"
                 println("Nouvelle connexion de ${client.inetAddress.hostAddress}")
 
                 // Lance le handler
@@ -43,6 +42,14 @@ class Server(val port: Int=9999, val public: Boolean=true,clearpassword: String?
             println("server arrêté")
         }
     }
-    fun getclients(): Set<Socket> = return this.clients
+    fun getclients(): List<String> = this.clientsconnect.values.toList()
+
+    fun setclient(socket: Socket,publickey:String) {
+        this.clientsconnect[socket] = publickey
+    }
+
+    fun deleteclient(socket: Socket) {
+        this.clientsconnect.remove(socket)
+    }
 
 }

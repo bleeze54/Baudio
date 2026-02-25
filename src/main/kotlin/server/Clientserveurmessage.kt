@@ -6,8 +6,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import tools.stringToPublicKey
 import java.io.BufferedReader
+import java.io.BufferedWriter
 import java.net.Socket
+import java.security.PublicKey
 import kotlin.coroutines.cancellation.CancellationException
 
 @Serializable
@@ -24,23 +27,9 @@ class Clientservermessage(private val client: Socket, private val password: Stri
             val reader: BufferedReader = client.getInputStream().bufferedReader()
             val out = client.getOutputStream()
             val writer = out.writer().buffered()
+            username(writer,reader)
             if (password != null) {
-                writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "password"))+ "\n")
-                writer.flush()
-                val message = try {
-                    withContext(Dispatchers.IO) {
-                        reader.readLine()
-                    }
-                } catch (e: CancellationException) {
-                    throw e  // propage l'annulation
-                }
-                val objet = Json.decodeFromString<Protocole>(message)
-                if (md5Hash(objet.message) != password){
-                    writer.write(Json.encodeToString(Protocole(action = "ERROR", message = "acces refusé"))+ "\n")
-                    writer.flush()
-                    writer.close()
-                    client.close()
-                }
+               password(password, writer,reader)
             }
             writer.write(Json.encodeToString(Protocole(action = "Info", message = "Bonjour"))+ "\n")
             writer.flush()
@@ -108,6 +97,45 @@ class Clientservermessage(private val client: Socket, private val password: Stri
             } catch (_: Exception) {
             }
             println("Client déconnecté → ${client.inetAddress.hostAddress}")
+        }
+    }
+
+    fun password(password: String,writer: BufferedWriter,reader: BufferedReader){
+        writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "password"))+ "\n")
+        writer.flush()
+        val message = try {
+                reader.readLine()
+        } catch (e: CancellationException) {
+            throw e  // propage l'annulation
+        }
+        val objet = Json.decodeFromString<Protocole>(message)
+        if (md5Hash(objet.message) != password){
+            writer.write(Json.encodeToString(Protocole(action = "ERROR", message = "acces refusé"))+ "\n")
+            writer.flush()
+            writer.close()
+            client.close()
+        }
+        return
+    }
+    fun username(writer: BufferedWriter,reader: BufferedReader){
+        writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "KEY"))+ "\n")
+        writer.flush()
+        val message = try {
+            reader.readLine()
+        } catch (e: CancellationException) {
+            throw e
+        }
+        val objet = Json.decodeFromString<Protocole>(message)
+        val publickey = stringToPublicKey(objet.message)
+        println(publickey)
+        if (publickey is PublicKey ) {
+            server.setclient(client,objet.message)
+            writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "OK"))+ "\n")
+            writer.flush()
+
+        }else {
+            writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "PAS OK")) + "\n")
+            writer.flush()
         }
     }
 }
