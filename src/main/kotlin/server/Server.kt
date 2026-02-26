@@ -45,13 +45,19 @@ class Server(val port: Int=9999, val public: Boolean=true,clearpassword: String?
         }
     }
     fun getclients(): List<String> = this.clientsconnect.values.toList()
-
+    private val lock = Any()
     fun setclient(socket: Socket,publickey:String) {
-        this.clientsconnect[socket] = publickey
+
+        synchronized(lock) {
+            this.clientsconnect[socket] = publickey
+        }
     }
 
     fun deleteclient(socket: Socket) {
-        this.clientsconnect.remove(socket)
+        synchronized(lock) {
+            this.clientsconnect.remove(socket)
+        }
+
     }
 
 }
