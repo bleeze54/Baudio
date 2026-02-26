@@ -4,23 +4,15 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import server.Protocole
 import java.io.BufferedReader
 import java.io.PrintWriter
 import java.net.Socket
 import java.util.*
+import tools.Protocole
 
 @Volatile
 var shutdown = false
 
-
-@Serializable
-data class Protocole(
-    val action: String,
-    val message: String,
-    val timestamp: Long = System.currentTimeMillis(),
-    val salutation:String ="salut"
-)
 suspend fun writeur(socket: Socket,compte: Compte) = coroutineScope {
     val writer = PrintWriter(socket.getOutputStream(), true)
     val s = Scanner(System.`in`)
@@ -59,7 +51,29 @@ suspend fun writeur(socket: Socket,compte: Compte) = coroutineScope {
 
 suspend fun reader(socket: Socket,compte: Compte)= coroutineScope {
         try {
+
             val reader: BufferedReader = socket.getInputStream().bufferedReader()
+
+            val message = reader.readLine()
+            if (message == null) {
+                println("Serveur déconnecté.")
+                shutdown = true
+            }
+            val objet = Json.decodeFromString<Protocole>(message)
+            if (objet.action == "REQUIREMENT" && objet.message == "KEY") {
+                val writer = PrintWriter(socket.getOutputStream(), true)
+                writer.println(Json.encodeToString(Protocole(action = "USERS", message = compte.getkey())))
+                val message = reader.readLine()
+                if (message == null) {
+                    println("Serveur déconnecté.")
+                    shutdown = true
+                }
+                val objet = Json.decodeFromString<Protocole>(message)
+                if(objet.action != "keyTest") {
+                    return@coroutineScope false
+                }
+                writer.println(Json.encodeToString(Protocole(action = "keyTest", message = compte.decrypt(objet.message))))
+            }
             while (!shutdown) {
                 val message = reader.readLine()
                 if (message == null) {
@@ -67,29 +81,11 @@ suspend fun reader(socket: Socket,compte: Compte)= coroutineScope {
                     shutdown = true
                     break
                 }
-                val objet = Json.decodeFromString<Protocole>(message)
-                if (objet.action == "REQUIREMENT" && objet.message == "KEY") {
-                    val writer = PrintWriter(socket.getOutputStream(), true)
-                    writer.println(Json.encodeToString(Protocole(action = "USERS", message = compte.getkey())))
-                    val message = reader.readLine()
-                    if (message == null) {
-                        println("Serveur déconnecté.")
-                        shutdown = true
-                        break
-                    }
-                    val objet = Json.decodeFromString<Protocole>(message)
-                    if(objet.action != "keyTest") {
-                        return@coroutineScope false
-                    }
-                    writer.println(Json.encodeToString(Protocole(action = "keyTest", message = compte.decrypt(objet.message))))
-                    continue
-                }
                 if (objet.action == "EXIT") {
                     println("Serveur déconnecté.")
                     shutdown = true
-                    break
                 }
-
+                val objet = Json.decodeFromString<Protocole>(message)
                 println("[REÇU] :${objet.message}")
                 print(">") // retrour ellegant a la ligne
             }

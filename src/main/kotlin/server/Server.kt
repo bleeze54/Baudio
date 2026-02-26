@@ -1,8 +1,10 @@
 package server
 
 import kotlinx.coroutines.*
+import tools.md5Hash
 import java.net.ServerSocket
 import java.net.Socket
+
 class Server(val port: Int=9999, val public: Boolean=true,clearpassword: String?=null) {
     private val clientsconnect: MutableMap<Socket,String>
     val encryptpassword :String?

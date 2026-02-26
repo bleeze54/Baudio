@@ -1,4 +1,4 @@
-package server
+package tools
 import java.security.MessageDigest
 fun md5Hash(input: String): String {
     val md = MessageDigest.getInstance("MD5")

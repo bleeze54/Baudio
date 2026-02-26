@@ -3,24 +3,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import tools.encrypt
-import tools.randomString
-import tools.stringToPublicKey
+import tools.*
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.net.Socket
 import java.security.PublicKey
 import kotlin.coroutines.cancellation.CancellationException
 
-@Serializable
-data class Protocole(
-    val action: String,
-    val message: String,
-    val timestamp: Long = System.currentTimeMillis()
-)
 class Clientservermessage(private val client: Socket, private val password: String? = null,val server: Server) {
 
     suspend fun handle() = coroutineScope {
@@ -103,6 +94,7 @@ class Clientservermessage(private val client: Socket, private val password: Stri
             }
             println("Client déconnecté → ${client.inetAddress.hostAddress}")
         }
+        server.deleteclient(client)
     }
 
     fun password(password: String,writer: BufferedWriter,reader: BufferedReader){
