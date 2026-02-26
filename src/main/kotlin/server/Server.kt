@@ -6,10 +6,12 @@ import java.net.ServerSocket
 import java.net.Socket
 
 class Server(val port: Int=9999, val public: Boolean=true,clearpassword: String?=null) {
-    private val clientsconnect: MutableMap<Socket,String>
+    private val clientsconnect: MutableMap<Socket,String> // contient un pseudo et un socket
+    private val account: MutableMap<String,String> //contient un pseudo et une clé publique
     val encryptpassword :String?
     init {
         this.clientsconnect= mutableMapOf()
+        this.account= mutableMapOf()
         this.encryptpassword=  if (clearpassword != null) {
             md5Hash(clearpassword)
         }else{
@@ -45,17 +47,31 @@ class Server(val port: Int=9999, val public: Boolean=true,clearpassword: String?
         }
     }
     fun getclients(): List<String> = this.clientsconnect.values.toList()
-    private val lock = Any()
-    fun setclient(socket: Socket,publickey:String) {
+    private val lockclientsonnect = Any()
+    fun setclient(socket: Socket,pseudo:String) {
 
-        synchronized(lock) {
-            this.clientsconnect[socket] = publickey
+        synchronized(lockclientsonnect) {
+            this.clientsconnect[socket] = pseudo
         }
     }
 
     fun deleteclient(socket: Socket) {
-        synchronized(lock) {
+        synchronized(lockclientsonnect) {
             this.clientsconnect.remove(socket)
+        }
+
+    }
+    private val lockaccount = Any()
+    fun setaccount(pseudo:String,publickey:String) {
+
+        synchronized(lockaccount) {
+            this.account.set(key=pseudo,publickey)
+        }
+    }
+
+    fun deleteaccount(pseudo:String,publickey:String) {
+        synchronized(lockaccount) {
+            this.account.remove(pseudo)
         }
 
     }

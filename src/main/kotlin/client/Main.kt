@@ -1,14 +1,13 @@
 package client
 
 import kotlinx.coroutines.*
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import tools.Protocole
 import java.io.BufferedReader
 import java.io.PrintWriter
 import java.net.Socket
 import java.util.*
-import tools.Protocole
 
 @Volatile
 var shutdown = false
@@ -51,17 +50,27 @@ suspend fun writeur(socket: Socket,compte: Compte) = coroutineScope {
 
 suspend fun reader(socket: Socket,compte: Compte)= coroutineScope {
         try {
-
+            print("zadascadadzds<x")
             val reader: BufferedReader = socket.getInputStream().bufferedReader()
-
-            val message = reader.readLine()
+            val writer = PrintWriter(socket.getOutputStream(), true)
+            var message = reader.readLine()
             if (message == null) {
                 println("Serveur déconnecté.")
                 shutdown = true
             }
-            val objet = Json.decodeFromString<Protocole>(message)
+            var objet = Json.decodeFromString<Protocole>(message)
+            if (objet.action == "REQUIREMENT" && objet.message == "PSEUDO"){
+                writer.println(Json.encodeToString(Protocole(action = "PSEUDO", message = compte.pseudo)))
+                print("ça passe bien")
+            }
+
+            message = reader.readLine()
+            if (message == null) {
+                println("Serveur déconnecté.")
+                shutdown = true
+            }
+            objet = Json.decodeFromString<Protocole>(message)
             if (objet.action == "REQUIREMENT" && objet.message == "KEY") {
-                val writer = PrintWriter(socket.getOutputStream(), true)
                 writer.println(Json.encodeToString(Protocole(action = "USERS", message = compte.getkey())))
                 val message = reader.readLine()
                 if (message == null) {
@@ -98,7 +107,10 @@ suspend fun reader(socket: Socket,compte: Compte)= coroutineScope {
 
 
 fun main() = runBlocking {
-    val compte : Compte = Compte()
+    val s= Scanner(System.`in`)
+    val pseudo = s.nextLine().trim()
+    val compte : Compte = Compte(pseudo=pseudo)
+
     val socket = try {
         Socket("localhost", 9999)
     } catch (e: Exception) {

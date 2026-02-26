@@ -115,22 +115,29 @@ class Clientservermessage(private val client: Socket, private val password: Stri
         return
     }
     fun username(writer: BufferedWriter,reader: BufferedReader): Boolean{
+        writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "PSEUDO"))+ "\n")
+        writer.flush()
+        var objet = Json.decodeFromString<Protocole>(reader.readLine())
+        val pseudo = objet.message
         writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "KEY"))+ "\n")
         writer.flush()
         var message = reader.readLine()
-        var objet = Json.decodeFromString<Protocole>(message)
+        objet = Json.decodeFromString<Protocole>(message)
         val publickey = stringToPublicKey(objet.message)
         if (publickey is PublicKey ) {
-            server.setclient(client,objet.message)
-            val KeyTest = randomString()
-            writer.write(Json.encodeToString(Protocole(action = "keyTest", message = encrypt(KeyTest,publickey)))+ "\n")
+            val keytest = randomString()
+            writer.write(Json.encodeToString(Protocole(action = "keyTest", message = encrypt(keytest,publickey)))+ "\n")
             writer.flush()
             message = reader.readLine()
             objet = Json.decodeFromString<Protocole>(message)
-            if (KeyTest == objet.message ) {
+            if (keytest == objet.message ) {
                 writer.write(Json.encodeToString(Protocole(action = "REQUIREMENT", message = "T bon"))+ "\n")
+                server.setclient(client,pseudo)
+                server.setaccount(pseudo,objet.message)
                 return true
-            }else{return false}
-        }else {return false}
+            }else{
+                return false}
+        }else {
+            return false}
     }
 }

@@ -11,7 +11,8 @@ import java.security.interfaces.RSAPublicKey
 import java.util.*
 
 //contien la logique crypographique de l'utilisateur
-class Compte(seedphrase:String? = null) {
+class Compte(seedphrase:String? = null ,val pseudo:String) {
+
     private val publicKey: RSAPublicKey
     private val privateKey: RSAPrivateKey
     init {
@@ -41,6 +42,5 @@ class Compte(seedphrase:String? = null) {
     fun decrypt(text: String): String {
         return tools.decrypt(text,privateKey)
     }
-
     fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
 }
